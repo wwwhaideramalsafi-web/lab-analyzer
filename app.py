@@ -17,9 +17,9 @@ if not api_key:
     st.error("Please provide the API key to proceed.")
     st.stop()
 
-# تهيئة النموذج باستخدام المكتبة المستقرة
+# تهيئة النموذج بالصيغة الصحيحة المدعومة
 genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('models/gemini-1.5-flash')
 
 # واجهة رفع التقرير الطبي
 uploaded_file = st.file_uploader("Upload Medical Report Image", type=["jpg", "jpeg", "png"])
@@ -52,4 +52,4 @@ if uploaded_file is not None:
                 st.error(f"An error occurred: {str(e)}")
 
 st.markdown("---")
-st.warning("Medical Disclaimer: This application is an AI assistant tool and does not replace professional medical diagnosis.")
+st.warning("Medical Disclaimer: هذا التطبيق هو أداة مساعدة للذكاء الاصطناعي ولا يُغني عن التشخيص الطبي المهني.")
