@@ -1,16 +1,14 @@
 import streamlit as st
-from google import genai
+import google.generativeai as genai
 import PIL.Image
-import os
 
-# فرض بيئة النظام للتعامل بالترميز القياسي
-os.environ["PYTHONIOENCODING"] = "utf-8"
-
+# إعدادات الصفحة الأساسية
 st.set_page_config(page_title="Medical Report Analyzer", layout="centered")
 
-st.title("Medical Report Analyzer")
+st.title("Medical Report Analyzer 🩺")
 st.markdown("---")
 
+# جلب المفتاح بأمان
 api_key = st.secrets.get("GEMINI_API_KEY")
 if not api_key:
     api_key = st.text_input("Enter Gemini API Key:", type="password", autocomplete="off")
@@ -19,12 +17,11 @@ if not api_key:
     st.error("Please provide the API key to proceed.")
     st.stop()
 
-try:
-    client = genai.Client(api_key=api_key)
-except Exception as e:
-    st.error(f"Client initialization error: {str(e)}")
-    st.stop()
+# تهيئة النموذج باستخدام المكتبة المستقرة
+genai.configure(api_key=api_key)
+model = genai.GenerativeModel('gemini-1.5-flash')
 
+# واجهة رفع التقرير
 uploaded_file = st.file_uploader("Upload Medical Report Image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
@@ -32,25 +29,23 @@ if uploaded_file is not None:
     image.thumbnail((800, 800))
     st.image(image, caption="Uploaded Report", use_container_width=True)
 
-    if st.button("Analyze Report"):
+    if st.button("Analyze Report 🚀"):
         with st.spinner("Processing and analyzing the report..."):
             try:
                 prompt = (
                     "Please analyze this medical report thoroughly in English. "
-                    "Extract the values and findings, and present them in a clear, professional medical table, "
-                    "followed by a brief summary and recommendations in English."
+                    "Extract all medical values, test names, and findings, and present them in a clear, "
+                    "professional medical table, followed by a brief clinical summary and recommendations in English."
                 )
                 
-                response = client.models.generate_content(
-                    model='gemini-2.5-flash',
-                    contents=[image, prompt]
-                )
+                response = model.generate_content([image, prompt])
                 st.success("Analysis completed successfully!")
                 
-                # معالجة آمنة للنص المستخرج لمنع أي خطأ ترميز
+                # طبقة حماية صارمة لترميز النصوص وتجنب أي خطأ في الكلمات أو الحروف
                 if response and hasattr(response, 'text'):
-                    clean_text = str(response.text).encode('ascii', 'ignore').decode('ascii')
-                    st.markdown(clean_text)
+                    # تحويل النص وتنظيفه ليتوافق 100% مع معايير الترميز العالمية UTF-8
+                    safe_text = response.text.encode('utf-8', errors='ignore').decode('utf-8')
+                    st.markdown(safe_text)
                 else:
                     st.warning("Received an empty response from the model.")
                 
