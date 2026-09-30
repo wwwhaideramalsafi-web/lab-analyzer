@@ -17,12 +17,9 @@ if not api_key:
     st.error("Please provide the API key to proceed.")
     st.stop()
 
-# تهيئة النموذج بشكل آمن وديناميكي
+# تهيئة النموذج باستخدام الإصدار 2.5
 genai.configure(api_key=api_key)
-try:
-    model = genai.GenerativeModel('gemini-1.5-flash')
-except Exception:
-    model = genai.GenerativeModel('gemini-pro')
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 # واجهة رفع التقرير الطبي
 uploaded_file = st.file_uploader("Upload Medical Report Image", type=["jpg", "jpeg", "png"])
@@ -44,7 +41,6 @@ if uploaded_file is not None:
                 response = model.generate_content([image, prompt])
                 st.success("Analysis completed successfully!")
                 
-                # طبقة حماية لضمان توافق النصوص وعدم توقف التطبيق
                 if response and hasattr(response, 'text'):
                     safe_text = response.text.encode('utf-8', errors='ignore').decode('utf-8')
                     st.markdown(safe_text)
