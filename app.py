@@ -17,9 +17,9 @@ if not api_key:
     st.error("Please provide the API key to proceed.")
     st.stop()
 
-# تهيئة النموذج باستخدام الإصدار 2.5
+# تهيئة النموذج بالإصدار المطلوب 3.8-flash
 genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-2.5-flash')
+model = genai.GenerativeModel('gemini-3.8-flash')
 
 # واجهة رفع التقرير الطبي
 uploaded_file = st.file_uploader("Upload Medical Report Image", type=["jpg", "jpeg", "png"])
