@@ -1,10 +1,15 @@
 import streamlit as st
 from google import genai
 import PIL.Image
+import sys
+import io
+
+# فرض استخدام ترميز utf-8 لجميع مخرجات النظام لمنع خطأ ascii
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 st.set_page_config(page_title="Medical Report Analyzer", layout="centered")
 
-st.title("Medical Report Analyzer 🩺")
+st.title("Medical Report Analyzer")
 st.markdown("---")
 
 api_key = st.secrets.get("GEMINI_API_KEY")
@@ -24,7 +29,7 @@ if uploaded_file is not None:
     image.thumbnail((800, 800))
     st.image(image, caption="Uploaded Report", use_container_width=True)
 
-    if st.button("Analyze Report 🚀"):
+    if st.button("Analyze Report"):
         with st.spinner("Processing and analyzing the report..."):
             try:
                 prompt = (
@@ -38,9 +43,13 @@ if uploaded_file is not None:
                     contents=[image, prompt]
                 )
                 st.success("Analysis completed successfully!")
-                st.write(response.text)
+                
+                # ضمان ترميز النص المعروض بشكل آمن
+                safe_text = response.text.encode('utf-8', errors='ignore').decode('utf-8')
+                st.markdown(safe_text)
+                
             except Exception as e:
-                st.error(f"An error occurred: {e}")
+                st.error(f"An error occurred: {str(e)}")
 
 st.markdown("---")
 st.warning("Medical Disclaimer: This application is an AI assistant tool and does not replace professional medical diagnosis.")
