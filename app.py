@@ -1,20 +1,17 @@
+import time
 from google import genai
 import PIL.Image
 import streamlit as st
 
 # إعدادات الصفحة
 st.set_page_config(
-    page_title="مساعد التحليل الطبي الذكي", page_layout="centered"
+    page_title="محلل التقارير الطبية الذكي", page_layout="centered"
 )
 
-# تصميم واجهة نظيفة وسريعة
-st.title("مساعد التحليل الطبي التفاعلي 🩺")
-st.markdown(
-    "مرحباً بك! ارفع صورة التقرير الطبي وتحدث مع النظام للحصول على تحليل فوري وسريع."
-)
+st.title("محلل التقارير الطبية الذكي 🩺")
 st.markdown("---")
 
-# جلب المفتاح بأمان
+# جلب المفتاح بأمان من الـ Secrets
 api_key = st.secrets.get("GEMINI_API_KEY")
 if not api_key:
     api_key = st.text_input(
@@ -28,43 +25,41 @@ if not api_key:
 # إنشاء العميل
 client = genai.Client(api_key=api_key)
 
-# الحفاظ على جلسة المحادثة النشطة داخل الذاكرة لتعمل مثل الشات الحقيقي
-if "chat" not in st.session_state:
-    # استخدام نموذج سريع جداً ومخصص للاستجابة الفورية
-    st.session_state.chat = client.chats.create(model="gemini-2.5-flash")
+# خيارات لغة التحليل
+lang = st.selectbox("لغة التحليل / Output Language", ["العربية", "English"])
 
 # رفع الصورة
 uploaded_file = st.file_uploader(
-    "ارفع صورة التقرير الطبي أو التحليل المختبري هنا",
-    type=["jpg", "jpeg", "png"],
+    "ارفع صورة التقرير الطبي أو التحليل", type=["jpg", "jpeg", "png"]
+)
+
+user_custom_prompt = st.text_input(
+    "ملاحظات أو أسئلة إضافية (اختياري):", placeholder="مثلاً: ركز على الهيموجلوبين"
 )
 
 if uploaded_file is not None:
     image = PIL.Image.open(uploaded_file)
 
-    # تصغير الصورة لكي يتم إرسالها ومعالجتها في أجزاء من الثانية
+    # تصغير الصورة لضمان السرعة الفائقة وعدم تعليق المعالجة
     image.thumbnail((800, 800))
-    st.image(
-        image, caption="التقرير المرفوع (جاهز للمحادثة السريعة)", width=400
-    )
+    st.image(image, caption="التقرير المرفوع", use_container_width=True)
 
-    # خانة إدخال الرسالة مثل الشات الحقيقي
-    user_query = st.text_input(
-        "اكتب سؤالك أو طلبك عن التقرير (مثلاً: ما هي النتائج غير الطبيعية؟):"
-    )
+    if st.button("تحليل التقرير 🚀"):
+        with st.spinner("جاري قراءة وتحليل التقرير الطبي..."):
+            prompt = f"قم بتحليل هذا التقرير الطبي باللغة ({lang}). استخرج النتائج والأرقام في جدول واضح مع ملخص وتوصيات بسيطة."
+            if user_custom_prompt:
+                prompt += f" ملاحظات إضافية: {user_custom_prompt}"
 
-    if st.button("إرسال الرد 🚀") and user_query:
-        with st.spinner("جاري الرد فوراً..."):
             try:
-                # إرسال الصورة مع السؤال مباشرة داخل جلسة المحادثة السريعة
-                response = st.session_state.chat.send_message(
-                    [image, user_query]
+                # استخدام النموذج السريع والمستقر
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash", contents=[image, prompt]
                 )
-                st.success("الرد الفوري:")
+                st.success("تم التحليل بنجاح!")
                 st.write(response.text)
             except Exception as e:
                 st.error(
-                    "حدث ضغط مؤقت في الشبكة، يرجى إعادة الإرسال فوراً."
+                    "حدث ضغط مؤقت في السيرفر، يرجى إعادة المحاولة بعد ثوانٍ."
                 )
 
 st.markdown("---")
