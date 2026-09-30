@@ -1,6 +1,8 @@
 import streamlit as st
-import google.generativeai as genai
+from openai import OpenAI
 import PIL.Image
+import base64
+from io import BytesIO
 
 # إعدادات الصفحة الأساسية
 st.set_page_config(page_title="Medical Report Analyzer", layout="centered")
@@ -8,18 +10,17 @@ st.set_page_config(page_title="Medical Report Analyzer", layout="centered")
 st.title("Medical Report Analyzer 🩺")
 st.markdown("---")
 
-# جلب المفتاح بأمان من الـ Secrets
-api_key = st.secrets.get("GEMINI_API_KEY")
+# جلب مفتاح OpenAI بأمان من الـ Secrets أو إدخاله يدوياً
+api_key = st.secrets.get("OPENAI_API_KEY")
 if not api_key:
-    api_key = st.text_input("Enter Gemini API Key:", type="password", autocomplete="off")
+    api_key = st.text_input("Enter OpenAI API Key:", type="password", autocomplete="off")
 
 if not api_key:
-    st.error("Please provide the API key to proceed.")
+    st.error("Please provide the OpenAI API key to proceed.")
     st.stop()
 
-# تهيئة النموذج بالإصدار المطلوب 3.8-flash
-genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-3.8-flash')
+# تهيئة عميل OpenAI
+client = OpenAI(api_key=api_key)
 
 # واجهة رفع التقرير الطبي
 uploaded_file = st.file_uploader("Upload Medical Report Image", type=["jpg", "jpeg", "png"])
@@ -30,20 +31,38 @@ if uploaded_file is not None:
     st.image(image, caption="Uploaded Report", use_container_width=True)
 
     if st.button("Analyze Report 🚀"):
-        with st.spinner("Processing and analyzing the report..."):
+        with st.spinner("Processing and analyzing the report with ChatGPT..."):
             try:
-                prompt = (
-                    "Please analyze this medical report thoroughly in English. "
-                    "Extract all medical values, test names, and findings, and present them in a clear, "
-                    "professional medical table, followed by a brief clinical summary and recommendations in English."
+                buffered = BytesIO()
+                image.save(buffered, format="JPEG")
+                img_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+                response = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "text", 
+                                    "text": "Please analyze this medical report thoroughly in English. Extract all medical values, test names, and findings, and present them in a clear, professional medical table, followed by a brief clinical summary and recommendations in English."
+                                },
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/jpeg;base64,{img_base64}"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    max_tokens=1000
                 )
                 
-                response = model.generate_content([image, prompt])
                 st.success("Analysis completed successfully!")
                 
-                if response and hasattr(response, 'text'):
-                    safe_text = response.text.encode('utf-8', errors='ignore').decode('utf-8')
-                    st.markdown(safe_text)
+                if response.choices and response.choices[0].message.content:
+                    st.markdown(response.choices[0].message.content)
                 else:
                     st.warning("Received an empty response from the model.")
                 
