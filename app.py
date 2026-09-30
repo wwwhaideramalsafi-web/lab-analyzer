@@ -1,6 +1,10 @@
 import streamlit as st
 from google import genai
 import PIL.Image
+import os
+
+# فرض بيئة النظام للتعامل بالترميز القياسي
+os.environ["PYTHONIOENCODING"] = "utf-8"
 
 st.set_page_config(page_title="Medical Report Analyzer", layout="centered")
 
@@ -15,7 +19,11 @@ if not api_key:
     st.error("Please provide the API key to proceed.")
     st.stop()
 
-client = genai.Client(api_key=api_key)
+try:
+    client = genai.Client(api_key=api_key)
+except Exception as e:
+    st.error(f"Client initialization error: {str(e)}")
+    st.stop()
 
 uploaded_file = st.file_uploader("Upload Medical Report Image", type=["jpg", "jpeg", "png"])
 
@@ -38,7 +46,13 @@ if uploaded_file is not None:
                     contents=[image, prompt]
                 )
                 st.success("Analysis completed successfully!")
-                st.markdown(response.text)
+                
+                # معالجة آمنة للنص المستخرج لمنع أي خطأ ترميز
+                if response and hasattr(response, 'text'):
+                    clean_text = str(response.text).encode('ascii', 'ignore').decode('ascii')
+                    st.markdown(clean_text)
+                else:
+                    st.warning("Received an empty response from the model.")
                 
             except Exception as e:
                 st.error(f"An error occurred: {str(e)}")
