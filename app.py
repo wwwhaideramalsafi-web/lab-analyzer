@@ -8,7 +8,7 @@ st.set_page_config(page_title="Medical Report Analyzer", layout="centered")
 st.title("Medical Report Analyzer 🩺")
 st.markdown("---")
 
-# جلب المفتاح بأمان
+# جلب المفتاح بأمان من الـ Secrets
 api_key = st.secrets.get("GEMINI_API_KEY")
 if not api_key:
     api_key = st.text_input("Enter Gemini API Key:", type="password", autocomplete="off")
@@ -21,7 +21,7 @@ if not api_key:
 genai.configure(api_key=api_key)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
-# واجهة رفع التقرير
+# واجهة رفع التقرير الطبي
 uploaded_file = st.file_uploader("Upload Medical Report Image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
@@ -41,9 +41,8 @@ if uploaded_file is not None:
                 response = model.generate_content([image, prompt])
                 st.success("Analysis completed successfully!")
                 
-                # طبقة حماية صارمة لترميز النصوص وتجنب أي خطأ في الكلمات أو الحروف
+                # طبقة حماية لضمان توافق النصوص وعدم توقف التطبيق
                 if response and hasattr(response, 'text'):
-                    # تحويل النص وتنظيفه ليتوافق 100% مع معايير الترميز العالمية UTF-8
                     safe_text = response.text.encode('utf-8', errors='ignore').decode('utf-8')
                     st.markdown(safe_text)
                 else:
