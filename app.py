@@ -68,7 +68,7 @@ if st.button("تحليل التقرير 🚀", use_container_width=True):
                     """
 
                 response = client.models.generate_content(
-                 model='gemini-3.8-flash',
+                 model='gemini-1.5-pro',
                     contents=[image, prompt]
                 )
                 
