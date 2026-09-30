@@ -1,90 +1,89 @@
-import streamlit as st
+import time
 from google import genai
-from PIL import Image
+import PIL.Image
+import streamlit as st
 
 # إعدادات الصفحة
-st.set_page_config(
-    page_title="محلل التقارير والتحاليل الطبية", 
-    page_icon="🔬", 
-    layout="centered"
+st.set_page_config(page_title="محلل التقارير الطبية", layout="centered")
+
+# كود CSS لمنع إظهار أيقونات التعبئة التلقائية والمربعات الصفراء من المتصفح
+st.markdown(
+    """
+    <style>
+    input[autocomplete="off"] {
+        background-color: transparent !important;
+    }
+    ::-webkit-credentials-auto-fill-button {
+        visibility: hidden !important;
+        pointer-events: none !important;
+        position: absolute !important;
+        right: 0 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
-st.title("🔬 برنامج قراءة وتحليل التقارير الطبية")
-
+st.title("محلل التقارير الطبية الذكي 🩺")
 st.markdown("---")
 
-# خيارات اللغة ونوع التقرير
+# اختيار اللغة وطوع التقرير
 col1, col2 = st.columns(2)
 with col1:
     lang = st.selectbox("لغة التحليل / Output Language", ["العربية", "English"])
 with col2:
     report_type = st.selectbox(
-        "نوع التقرير الطبي:",
-        [
-            "تحاليل دم وكيمياء (CBC, Biochemistry, Hormones)",
-            "تحليل نسيجي وباثولوجي (Histopathology / Cytology)",
-            "تقرير أشعة أو سونار (X-Ray, Ultrasound, MRI, CT)",
-            "تقرير طبي عام / آخر"
-        ]
+        "نوع التقرير", ["تحليل عام", "فحص دم CBC", "أشعة / مفراس", "وظائف كبد/كلى"]
     )
 
-api_key = st.text_input("أدخل مفتاح Gemini API Key الخاص بك:", type="password")
-uploaded_file = st.file_uploader("ارفع صورة التقرير الطبي أو التحليل المختبري:", type=["png", "jpg", "jpeg"])
+# جلب المفتاح تلقائياً من Secrets لمنع ظهور خانات إدخال السر
+api_key = st.secrets.get("GEMINI_API_KEY")
 
-if uploaded_file:
-    image = Image.open(uploaded_file)
-    st.image(image, caption="التقرير المرفوع", use_container_width=True)
+if not api_key:
+    st.error(
+        "لم يتم العثور على API Key في Streamlit Secrets. يرجى إضافته في الإعدادات."
+    )
+    st.stop()
 
-if st.button("تحليل التقرير 🚀", use_container_width=True):
-    if not api_key:
-        st.error("يرجى إدخال مفتاح Gemini API Key أولاً!")
-    elif not uploaded_file:
-        st.error("يرجى رفع صورة التحليل أولاً!")
-    else:
+client = genai.Client(api_key=api_key)
+
+# رفع الصورة
+uploaded_file = st.file_uploader(
+    "رفع صورة التقرير الطبي أو التحليل المختبري", type=["jpg", "jpeg", "png"]
+)
+
+if uploaded_file is not None:
+    image = PIL.Image.open(uploaded_file)
+
+    # تصغير حجم أبعاد الصورة لتسريع المعالجة بشكل كبير
+    max_size = (1024, 1024)
+    image.thumbnail(max_size)
+
+    st.image(image, caption="التقرير المرفوع", use_column_width=True)
+
+    if st.button("تحليل التقرير 🚀"):
         with st.spinner("جاري قراءة وتحليل النتائج بواسطة الذكاء الاصطناعي..."):
-            try:
-                client = genai.Client(api_key=api_key)
-                
-                # توجيهات الموديل بحسب اللغة
-                if lang == "العربية":
-                    prompt = f"""
-                    أنت خبير واستشاري في قراءة وتفسير الفحوصات والتقارير الطبية.
-                    نوع التقرير المرفق: {report_type}.
-                    
-                    يرجى قراءة الصورة المرفقة بعناية وتجهيز الإجابة باللغة العربية كالتالي:
-                    1. جدول يوضح: (اسم التحليل / الاختبار، النتيجة Result، المدى الطبيعي Reference Range، والحالة سواء كانت طبيعية أو مرتفعة أو منخفضة).
-                    2. ملخص وشرح طبي بسيط يوضح أهم النتائج وما يعنيه التقرير بشكل واصل ومفهوم.
-                    3. إذا كان هناك مصطلحات معقدة أو باثولوجية، يرجى تبسيطها.
-                    """
-                else:
-                    prompt = f"""
-                    You are an expert medical reports analyst.
-                    Report Type: {report_type}.
-                    
-                    Please read the attached medical report image carefully and structure the response in English:
-                    1. A Markdown Table containing: (Test Name, Result, Reference Range, Status: Normal/High/Low).
-                    2. A concise medical summary explaining the main findings in clear, easy-to-understand language.
-                    3. Explanation of any complex medical or pathological terms present.
-                    """
+            prompt = f"قم بتحليل هذا التقرير الطبي ({report_type}) باللغة ({lang}). استخرج الأرقام والقيم غير الطبيعية واعرض النتائج في جدول واضح، واكتب ملخصاً بسيطاً وتنبيهات هامة."
 
-                response = client.models.generate_content(
-                 model='gemini-3.8-flash',
-                    contents=[image, prompt]
-                )
-                
-                st.success("تم التحليل بنجاح!")
-                st.markdown(response.text)
-                
-                # زر تنزيل التقرير
-                st.download_button(
-                    label="💾 تنزيل التقرير كملف نصي",
-                    data=response.text,
-                    file_name="medical_report_analysis.txt",
-                    mime="text/plain"
-                )
-
-            except Exception as e:
-                st.error(f"حدث خطأ أثناء التحليل: {e}")
+            # محاولة الاتصال مع إعادة المحاولة التلقائية عند الضغط
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    response = client.models.generate_content(
+                        model="gemini-3.8-flash", contents=[image, prompt]
+                    )
+                    st.success("تم التحليل بنجاح!")
+                    st.write(response.text)
+                    break
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        time.sleep(2)
+                    else:
+                        st.error(
+                            "السيرفر يشهد ضغطاً مؤقتاً حالياً، يرجى إعادة الضغط بعد ثوانٍ قليلة."
+                        )
 
 st.markdown("---")
-st.warning("⚠️ تنبيه طبي: هذا التطبيق يستعين بالذكاء الاصطناعي للمساعدة في فهم وتلخيص نتائج التقارير الطبية فقط، ولا يعتبر بديلاً عن الاستشارة الطبية أو التشخيص المباشر من قبل الطبيب المختص.")
+st.warning(
+    "تنبيه طبي: هذا التطبيق يستعين بالذكاء الاصطناعي للمساعدة في فهم وتلخيص نتائج التقارير الطبية فقط، ولا يعتبر بديلاً عن الاستشارة الطبية أو التشخيص المباشر من قبل الطبيب المختص."
+)
