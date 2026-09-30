@@ -1,25 +1,28 @@
+# -*- coding: utf-8 -*-
 import streamlit as st
 from google import genai
 import PIL.Image
 
-st.set_page_config(page_title="محلل التقارير الطبية", layout="centered")
+# إعدادات الصفحة الأساسية
+st.set_page_config(page_title="محلل التقارير الطبية الذكي", layout="centered")
 
 st.title("محلل التقارير الطبية الذكي 🩺")
 st.markdown("---")
 
-# جلب المفتاح
+# جلب المفتاح بأمان
 api_key = st.secrets.get("GEMINI_API_KEY")
 if not api_key:
-    api_key = st.text_input("أدخل مفتاح Gemini API Key:", type="password")
+    api_key = st.text_input("أدخل مفتاح Gemini API Key:", type="password", autocomplete="off")
 
 if not api_key:
-    st.warning("يرجى إدخال مفتاح الـ API.")
+    st.error("يرجى إضافة مفتاح الـ API للبدء.")
     st.stop()
 
-# التهيئة بالطريقة الصحيحة للـ SDK الجديد
+# تهيئة العميل
 client = genai.Client(api_key=api_key)
 
-uploaded_file = st.file_uploader("ارفع صورة التقرير الطبي", type=["jpg", "jpeg", "png"])
+# واجهة المستخدم بالعربية
+uploaded_file = st.file_uploader("ارفع صورة التقرير الطبي أو التحليل", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
     image = PIL.Image.open(uploaded_file)
@@ -27,15 +30,23 @@ if uploaded_file is not None:
     st.image(image, caption="التقرير المرفوع", use_container_width=True)
 
     if st.button("تحليل التقرير 🚀"):
-        with st.spinner("جاري التحليل..."):
+        with st.spinner("جاري قراءة وتحليل التقرير..."):
             try:
-                # الاستدعاء الصحيح للنموذج وإرسال المدخلات كقائمة (List)
+                # البرومبت بالإنجليزية لضمان تحليل دقيق باللغة الإنجليزية بالكامل
+                prompt = (
+                    "Please analyze this medical report thoroughly in English. "
+                    "Extract the values and findings, and present them in a clear, professional medical table, "
+                    "followed by a brief summary and recommendations in English."
+                )
+                
                 response = client.models.generate_content(
                     model='gemini-2.5-flash',
-                    contents=[image, "قم بتحليل هذا التقرير الطبي بدقة واستخرج النتائج في جدول."]
+                    contents=[image, prompt]
                 )
                 st.success("تم التحليل بنجاح!")
                 st.write(response.text)
             except Exception as e:
-                # لنطبع الخطأ البرمجي الحقيقي بدلاً من رسالة "ضغط سيرفر" لنعرف السبب بدقة
                 st.error(f"حدث خطأ في التنفيذ: {e}")
+
+st.markdown("---")
+st.warning("تنبيه طبي: هذا التطبيق أداة مساعدة ولا يُغني عن التشخيص الطبي المباشر من قبل الطبيب المختص.")
