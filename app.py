@@ -1,38 +1,32 @@
-# -*- coding: utf-8 -*-
 import streamlit as st
 from google import genai
 import PIL.Image
 
-# إعدادات الصفحة الأساسية
-st.set_page_config(page_title="محلل التقارير الطبية الذكي", layout="centered")
+st.set_page_config(page_title="Medical Report Analyzer", layout="centered")
 
-st.title("محلل التقارير الطبية الذكي 🩺")
+st.title("Medical Report Analyzer 🩺")
 st.markdown("---")
 
-# جلب المفتاح بأمان
 api_key = st.secrets.get("GEMINI_API_KEY")
 if not api_key:
-    api_key = st.text_input("أدخل مفتاح Gemini API Key:", type="password", autocomplete="off")
+    api_key = st.text_input("Enter Gemini API Key:", type="password", autocomplete="off")
 
 if not api_key:
-    st.error("يرجى إضافة مفتاح الـ API للبدء.")
+    st.error("Please provide the API key to proceed.")
     st.stop()
 
-# تهيئة العميل
 client = genai.Client(api_key=api_key)
 
-# واجهة المستخدم بالعربية
-uploaded_file = st.file_uploader("ارفع صورة التقرير الطبي أو التحليل", type=["jpg", "jpeg", "png"])
+uploaded_file = st.file_uploader("Upload Medical Report Image", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
     image = PIL.Image.open(uploaded_file)
     image.thumbnail((800, 800))
-    st.image(image, caption="التقرير المرفوع", use_container_width=True)
+    st.image(image, caption="Uploaded Report", use_container_width=True)
 
-    if st.button("تحليل التقرير 🚀"):
-        with st.spinner("جاري قراءة وتحليل التقرير..."):
+    if st.button("Analyze Report 🚀"):
+        with st.spinner("Processing and analyzing the report..."):
             try:
-                # البرومبت بالإنجليزية لضمان تحليل دقيق باللغة الإنجليزية بالكامل
                 prompt = (
                     "Please analyze this medical report thoroughly in English. "
                     "Extract the values and findings, and present them in a clear, professional medical table, "
@@ -43,10 +37,10 @@ if uploaded_file is not None:
                     model='gemini-2.5-flash',
                     contents=[image, prompt]
                 )
-                st.success("تم التحليل بنجاح!")
+                st.success("Analysis completed successfully!")
                 st.write(response.text)
             except Exception as e:
-                st.error(f"حدث خطأ في التنفيذ: {e}")
+                st.error(f"An error occurred: {e}")
 
 st.markdown("---")
-st.warning("تنبيه طبي: هذا التطبيق أداة مساعدة ولا يُغني عن التشخيص الطبي المباشر من قبل الطبيب المختص.")
+st.warning("Medical Disclaimer: This application is an AI assistant tool and does not replace professional medical diagnosis.")
