@@ -6,7 +6,7 @@ import streamlit as st
 # إعدادات الصفحة
 st.set_page_config(page_title="محلل التقارير الطبية", layout="centered")
 
-# كود CSS لمنع إظهار أيقونات التعبئة التلقائية والمربعات الصفراء من المتصفح
+# منع أزرار التعبئة التلقائية والمربعات الصفراء
 st.markdown(
     """
     <style>
@@ -27,7 +27,7 @@ st.markdown(
 st.title("محلل التقارير الطبية الذكي 🩺")
 st.markdown("---")
 
-# اختيار اللغة وطوع التقرير
+# اختيار اللغة ونوع التقرير
 col1, col2 = st.columns(2)
 with col1:
     lang = st.selectbox("لغة التحليل / Output Language", ["العربية", "English"])
@@ -36,36 +36,48 @@ with col2:
         "نوع التقرير", ["تحليل عام", "فحص دم CBC", "أشعة / مفراس", "وظائف كبد/كلى"]
     )
 
-# جلب المفتاح تلقائياً من Secrets لمنع ظهور خانات إدخال السر
+# جلب المفتاح من الـ Secrets بأمان
 api_key = st.secrets.get("GEMINI_API_KEY")
 
 if not api_key:
-    st.error(
-        "لم يتم العثور على API Key في Streamlit Secrets. يرجى إضافته في الإعدادات."
+    api_key = st.text_input(
+        "أدخل مفتاح Gemini API Key:", type="password", autocomplete="off"
     )
+
+if not api_key:
+    st.warning("يرجى التأكد من إضافة مفتاح الـ API في Streamlit Secrets.")
     st.stop()
 
 client = genai.Client(api_key=api_key)
 
-# رفع الصورة
+# خانة رفع الصورة
 uploaded_file = st.file_uploader(
     "رفع صورة التقرير الطبي أو التحليل المختبري", type=["jpg", "jpeg", "png"]
+)
+
+# ملاحظات إضافية اختياري
+user_custom_prompt = st.text_input(
+    "أي ملاحظات أو أسئلة إضافية؟ (اختياري)",
+    placeholder="مثلاً: ركز على النتائج غير الطبيعية...",
 )
 
 if uploaded_file is not None:
     image = PIL.Image.open(uploaded_file)
 
-    # تصغير حجم أبعاد الصورة لتسريع المعالجة بشكل كبير
+    # تصغير أبعاد الصورة لتسريع المعالجة
     max_size = (1024, 1024)
     image.thumbnail(max_size)
 
-    st.image(image, caption="التقرير المرفوع", use_column_width=True)
+    # عرض الصورة بالتوافق مع الإصدارات الحديثة
+    st.image(image, caption="التقرير المرفوع", use_container_width=True)
 
     if st.button("تحليل التقرير 🚀"):
         with st.spinner("جاري قراءة وتحليل النتائج بواسطة الذكاء الاصطناعي..."):
-            prompt = f"قم بتحليل هذا التقرير الطبي ({report_type}) باللغة ({lang}). استخرج الأرقام والقيم غير الطبيعية واعرض النتائج في جدول واضح، واكتب ملخصاً بسيطاً وتنبيهات هامة."
+            prompt = f"قم بتحليل هذا التقرير الطبي ({report_type}) باللغة ({lang}). استخرج الأرقام والقيم غير الطبيعية واعرض النتائج في جدول واضح مع ملخص بسيط."
+            if user_custom_prompt:
+                prompt += f" ملاحظات إضافية من المستخدم: {user_custom_prompt}"
 
-            # محاولة الاتصال مع إعادة المحاولة التلقائية عند الضغط
+            # محاولة الاتصال مع إعادة المحاولة التلقائية لتفادي الضغط (503/429)
             max_retries = 3
             for attempt in range(max_retries):
                 try:
