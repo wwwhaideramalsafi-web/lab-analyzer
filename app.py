@@ -1,11 +1,6 @@
 import streamlit as st
 from google import genai
 import PIL.Image
-import sys
-import io
-
-# فرض استخدام ترميز utf-8 لجميع مخرجات النظام لمنع خطأ ascii
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 st.set_page_config(page_title="Medical Report Analyzer", layout="centered")
 
@@ -43,10 +38,7 @@ if uploaded_file is not None:
                     contents=[image, prompt]
                 )
                 st.success("Analysis completed successfully!")
-                
-                # ضمان ترميز النص المعروض بشكل آمن
-                safe_text = response.text.encode('utf-8', errors='ignore').decode('utf-8')
-                st.markdown(safe_text)
+                st.markdown(response.text)
                 
             except Exception as e:
                 st.error(f"An error occurred: {str(e)}")
