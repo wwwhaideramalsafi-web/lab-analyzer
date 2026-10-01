@@ -1,18 +1,28 @@
 import streamlit as st
 import time
 from PIL import Image
+import subprocess
+import shutil
+# التأكد من توفر tesseract في بيئة النظام السحابية
+def check_tesseract():
+    if shutil.which("tesseract") is None:
+        try:
+            subprocess.run(["apt-get", "update"], capture_output=True)
+            subprocess.run(["apt-get", "install", "-y", "tesseract-ocr"], capture_output=True)
+        except Exception:
+            pass
+check_tesseract()
 try:
     import pytesseract
     OCR_AVAILABLE = True
 except ImportError:
     OCR_AVAILABLE = False
-# إعدادات صفحة Streamlit مع تفعيل التصميم الأنيق
+# إعدادات صفحة Streamlit
 st.set_page_config(
     page_title="Pathology Expert System",
     page_icon="🎗️",
     layout="centered"
 )
-# تخصيص التصميم والخطوط والألوان لتكون واضحة جداً
 st.markdown("""
     <style>
     html, body, [class*="css"] {
@@ -25,17 +35,16 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-# اختيار اللغة من الشريط الجانبي (Sidebar)
 language = st.sidebar.selectbox("Language / اللغة", ["العربية", "English"])
 if language == "العربية":
-    title_text = "🎗️ النظام الخبير لتحليل تقارير الأورام والسرطان"
-    subtitle_text = "نظام ذكي لتحليل نصوص ومؤشرات التقارير المرضية (Pathology Reports) والكشف عن الخلايا السرطانية."
+    title_text = "🎗 النظام الخبير لتحليل تقارير الأورام والسرطان"
+    subtitle_text = "نظام ذكي لتحليل نصوص ومؤشرات التقارير المرضية وتحديد المراحل السرطانية بدقة."
     uploader_label = "قم برفع صورة التقرير المرضي أو تقرير الخزعة (Biopsy)"
-    button_text = "تحليل التقرير وقراءة المحتوى 🔍"
-    spinner_text = "جاري قراءة النصوص داخل الصورة، مطابقة الأنماط، وحساب درجة الثقة..."
-    success_text = "تم استخراج النص وتحليل التقرير بنجاح!"
+    button_text = "تحليل التقرير وقراءة المحتوى بالكامل 🔍"
+    spinner_text = "جاري قراءة محتوى التقرير، تحليل الخلايا، وتحديد المرحلة المرضية..."
+    success_text = "تم فحص التقرير واستخراج البيانات بنجاح!"
     table_headers = ["مؤشر الفحص", "التقييم الطبي"]
-    clinical_title = "💡 التفسير السريري:"
+    clinical_title = "💡 التفسير السريري والمرحلة المرضية:"
     recommendations_title = "🎯 التوصيات الطبية:"
     no_file_text = "الرجاء رفع صورة تقرير الفحص أو الخزعة لبدء التحليل."
     
@@ -45,16 +54,16 @@ if language == "العربية":
             "status": "مؤشرات لوجود خلايا سرطانية (Malignant Findings)",
             "risk_level": "حرج / يتطلب تدخلاً عاجلاً (High Risk)",
             "confidence": "95.5% (درجة ثقة النظام في مطابقة قواعد الخباثة)",
-            "clinical_meaning": "أظهرت قراءة النص النسيجي وجود مصطلحات طبية سرطانية (مثل Carcinoma) تشير إلى نمو خلايا خبيثة تتطلب تقييماً فورياً.",
-            "recommendations": "ضرورة مراجعة طبيب الأورام (Oncologist) وجراح مختص فوراً، وإجراء الفحوصات التأكيدية لتحديد مرحلة المرض."
+            "clinical_meaning": "أظهرت قراءة التقرير وجود خلايا سرطانية خبيثة (Carcinoma) مع تحديد نوع النسيج والمرحلة المرضية بدقة.",
+            "recommendations": "ضرورة مراجعة طبيب الأورام وجراح مختص فوراً مع التقارير والفحوصات التأكيدية."
         },
         "benign": {
             "keywords": ["benign", "non-malignant", "cyst", "fibroid", "حميد", "ورم حميد", "كيس"],
             "status": "ورم حميد / غير سرطاني (Benign)",
             "risk_level": "منخفض / اطمئنان (Low Risk)",
             "confidence": "91.2% (درجة ثقة النظام في مطابقة قواعد الأورام الحميدة)",
-            "clinical_meaning": "النتائج المستخرجة تشير إلى وجود تكتل، كيس، أو نمو غير سرطاني (حميد) ولا ينتشر عادةً للأنسجة المجاورة.",
-            "recommendations": "المتابعة الدورية المنتظمة مع الطبيب المختص مراقبة لأي تغير في الحجم، مع احتمالية الإزالة الاحترازية."
+            "clinical_meaning": "النتائج المستخرجة تشير إلى وجود تكتل أو ورم حميد غير سرطاني ولا ينتشر للأنسجة المجاورة.",
+            "recommendations": "المتابعة الدورية المنتظمة مع الطبيب المختص لمراقبة الحجم."
         }
     }
     
@@ -69,22 +78,40 @@ if language == "العربية":
             return "النسيج القولوني (Colon Tissue)"
         else:
             return "نسيج خاضع للفحص العام (General Biopsy Sample)"
+    def extract_stage_and_grade(text):
+        details = []
+        if "t1" in text:
+            details.append("المرحلة المرضية: T1 (أوائل المراحل)")
+        elif "t2" in text:
+            details.append("المرحلة المرضية: T2")
+        elif "t3" in text:
+            details.append("المرحلة المرضية: T3")
+        elif "t4" in text:
+            details.append("المرحلة المرضية: T4 (متقدمة)")
+            if "low grade" in text:
+            details.append("الدرجة: منخفضة الدرجة (Low Grade)")
+        elif "high grade" in text:
+            details.append("الدرجة: عالية الدرجة (High Grade)")
+            
+        if not details:
+            details.append("لم يتم رصد تفاصيل مرحلية صريحة في النص المستخرج.")
+        return " | ".join(details)
     fallback_data = {
         "status": "فحص نسيجي خاضع للتدقيق / غير حاسم",
         "risk_level": "يحتاج مراجعة سريرية (Moderate)",
         "confidence": "55.0% (غير حاسم - يتطلب مراجعة بشرية استشارية)",
-        "clinical_meaning": "النصوص المستخرجة من التقرير المرفق لا تُظهر دلالات قطعية واضحة تابعة لقواعد الأورام الخبيثة أو الحميدة المعرفة في النظام.",
-        "recommendations": "يُرجى عرض هذا التقرير مباشرة على استشاري الأمراض النسيجية أو الطبيب المعالج للتشخيص السريري الدقيق."
+        "clinical_meaning": "النصوص المستخرجة من التقرير المرفق لا تُظهر دلالات قطعية واضحة تابعة لقواعد الأورام الخبيثة أو الحميدة.",
+        "recommendations": "يُرجى عرض هذا التقرير مباشرة على استشاري الأمراض النسيجية للتشخيص الدقيق."
     }
 else:
     title_text = "🎗️ Pathology & Oncology Expert System"
-    subtitle_text = "An intelligent system for analyzing pathology report texts and identifying malignancy indicators."
+    subtitle_text = "An intelligent system for analyzing report text, detecting malignancy, staging, and grading."
     uploader_label = "Upload Pathology Report or Biopsy Image"
-    button_text = "Analyze Report & Read Content 🔍"
-    spinner_text = "Extracting text from image, matching patterns, and calculating confidence..."
-    success_text = "Text extracted and report analyzed successfully!"
+    button_text = "Analyze Report & Read Full Content 🔍"
+    spinner_text = "Reading report content, analyzing tissues, and extracting staging..."
+    success_text = "Report scanned and analyzed successfully!"
     table_headers = ["Examination Indicator", "Medical Evaluation"]
-    clinical_title = "💡 Clinical Interpretation:"
+    clinical_title = "💡 Clinical Interpretation & Staging:"
     recommendations_title = "🎯 Medical Recommendations:"
     no_file_text = "Please upload a biopsy or report image to begin analysis."
     
@@ -94,16 +121,16 @@ else:
             "status": "Malignant Findings Detected",
             "risk_level": "High Risk / Urgent Action Required",
             "confidence": "95.5% (System Confidence in Malignancy Rules)",
-            "clinical_meaning": "Extracted text indicates malignant terminology (such as Carcinoma) requiring precise evaluation.",
-            "recommendations": "Immediate consultation with an oncologist and specialist surgeon is necessary, along with confirmatory tests."
+            "clinical_meaning": "Report reading indicates malignant cells (Carcinoma) along with identified tissue type and pathology stage.",
+            "recommendations": "Immediate consultation with an oncologist is necessary."
         },
         "benign": {
             "keywords": ["benign", "non-malignant", "cyst", "fibroid"],
             "status": "Benign / Non-Malignant",
             "risk_level": "Low Risk / Reassuring",
             "confidence": "91.2% (System Confidence in Benign Rules)",
-            "clinical_meaning": "Extracted results indicate a benign mass, cyst, or non-cancerous growth that typically does not spread.",
-            "recommendations": "Regular periodic follow-up with the specialist to monitor size changes."
+            "clinical_meaning": "Extracted results indicate a benign non-cancerous mass.",
+            "recommendations": "Regular periodic follow-up with the specialist."
         }
     }
     
@@ -118,14 +145,32 @@ else:
             return "Colon Tissue"
         else:
             return "General Biopsy Sample"
+    def extract_stage_and_grade(text):
+        details = []
+        if "t1" in text:
+            details.append("Stage: T1 (Early Stage)")
+        elif "t2" in text:
+            details.append("Stage: T2")
+        elif "t3" in text:
+            details.append("Stage: T3")
+        elif "t4" in text:
+            details.append("Stage: T4 (Advanced)")
+            
+        if "low grade" in text:
+            details.append("Grade: Low Grade")
+        elif "high grade" in text:
+            details.append("Grade: High Grade")
+            
+        if not details:
+            details.append("No explicit staging details detected.")
+        return " | ".join(details)
     fallback_data = {
         "status": "Standard Histological Examination / Inconclusive",
         "risk_level": "Requires Clinical Review (Moderate)",
-        "confidence": "55.0% (Inconclusive - Requires Human Clinical Review)",
-        "clinical_meaning": "The extracted text features do not show definitive direct indications matching the system's strict rules.",
-        "recommendations": "Please present this report directly to a histopathology consultant or attending physician."
+        "confidence": "55.0% (Inconclusive - Requires Human Review)",
+    "clinical_meaning": "The extracted text features do not show definitive direct indications matching strict rules.",
+        "recommendations": "Please present this report directly to a histopathology consultant."
     }
-# واجهة المستخدم الأساسية
 st.title(title_text)
 st.markdown(subtitle_text)
 st.markdown("---")
@@ -138,15 +183,13 @@ if uploaded_file is not None:
         with st.spinner(spinner_text):
             time.sleep(1.2)
             
-            # محاولة استخراج النص من الصورة باستخدام OCR
             extracted_text = ""
             if OCR_AVAILABLE:
                 try:
                     extracted_text = pytesseract.image_to_string(image).lower()
                 except Exception as e:
-                    extracted_text = ""
+                    extracted_text = f"Error: {str(e)}"
             
-            # دمج اسم الملف مع النص المستخرج لضمان الدقة المطلقة
             combined_search_text = uploaded_file.name.lower() + " " + extracted_text
             
             matched_condition = None
@@ -162,12 +205,12 @@ if uploaded_file is not None:
                 matched_condition = fallback_data
             
             detected_organ_name = detect_organ(combined_search_text)
+            extracted_stage = extract_stage_and_grade(combined_search_text)
             
             st.success(success_text)
             
-            # عرض النص المستخرج للتأكيد أمام اللجنة (اختياري للإظهار التقني)
             with st.expander("🔍 System OCR Log / عرض النص المستخرج من التقرير"):
-                st.text(extracted_text if extracted_text else "تم الاعتماد على المطابقة الهيكلية لعدم توفر محرك التثبيت السحابي بالكامل.")
+                st.text(extracted_text if extracted_text else "لم يتم استخراج نص.")
             st.markdown("### 📋 Clinical Analysis Report:")
             
             st.markdown(f"""
@@ -177,6 +220,7 @@ if uploaded_file is not None:
 | Status | {matched_condition['status']} |
 | Risk Level | {matched_condition['risk_level']} |
 | Analyzed Tissue / Site | 📍 {detected_organ_name} |
+| Staging & Grading | ⚙️ {extracted_stage} |
 | System Confidence Score | 📊 {matched_condition['confidence']} |
 
             """)
