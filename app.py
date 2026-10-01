@@ -1,48 +1,37 @@
-import streamlit as st
-import time
-# إعدادات صفحة Streamlit
-st.set_page_config(
-    page_title="نظام كشف الأورام والتقارير الطبية",
-    page_icon="🎗️",
-    layout="centered"
-)
-# عنوان التطبيق الواجهة
-st.title("🎗️ النظام الخبير لتحليل تقارير الأورام والسرطان")
-st.markdown("نظام محلي آمن لتحليل نصوص ومؤشرات التقارير المرضية (Pathology Reports) والكشف عن الخلايا السرطانية.")
-st.markdown("---")
-# قاعدة المعرفة المحلية المخصصة للأورام
-cancer_knowledge = {
-    "malignant": {
-        "keywords": ["malignant", "carcinoma", "tumor", "malignancy", "sarcoma", "lymphoma", "خبيث", "ورم خبيث"],
-        "status": "مؤشرات لوجود خلايا سرطانية (Malignant Findings)",
-        "risk_level": "حرج / يتطلب تدخلاً عاجلاً (High Risk)",
-        "clinical_meaning": "التقرير يحتوي على مصطلحات طبية تشير إلى وجود نمو غير طبيعي وخلايا خبيثة تتطلب تقييماً دقيقاً.",
-        "recommendations": "ضرورة مراجعة طبيب الأورام (Oncologist) وجراح مختص فوراً، إجراء فحوصات تأكيدية (IHC/Biopsy)، وتحديد بروتوكول العلاج."
-    },
-    "benign": {
-        "keywords": ["benign", "non-malignant", "cyst", "fibroid", "حميد", "ورم حميد", "كيس"],
-        "status": "ورم حميد / غير سرطاني (Benign)",
-        "risk_level": "منخفض / اطمئنان (Low Risk)",
-        "clinical_meaning": "النتائج تشير إلى وجود تكتل، كيس، أو نمو غير سرطاني (حميد) ولا ينتشر عادةً للأنسجة المجاورة.",
-        "recommendations": "المتابعة الدورية المنتظمة مع الطبيب المختص مراقبة لأي تغير في الحجم، مع احتمالية الإزالة الاحترازية إذا لزم الأمر."
+"status": "Malignant Findings Detected",
+            "risk_level": "High Risk / Urgent Action Required",
+            "clinical_meaning": "The report contains medical terminology indicating abnormal growth and malignant cells requiring precise evaluation.",
+            "recommendations": "Immediate consultation with an oncologist and specialist surgeon is necessary, along with confirmatory tests."
+        },
+        "benign": {
+            "keywords": ["benign", "non-malignant", "cyst", "fibroid"],
+            "status": "Benign / Non-Malignant",
+            "risk_level": "Low Risk / Reassuring",
+            "clinical_meaning": "Results indicate a benign mass, cyst, or non-cancerous growth that typically does not spread to adjacent tissues.",
+            "recommendations": "Regular periodic follow-up with the specialist to monitor size changes, with potential precautionary removal."
+        }
     }
-}
-# واجهة رفع الملفات
-uploaded_file = st.file_uploader("قم برفع صورة التقرير المرضي أو تقرير الخزعة (Biopsy)", type=["png", "jpg", "jpeg", "pdf"])
+    fallback_data = {
+        "status": "Standard Histological Examination / Inconclusive",
+        "risk_level": "Requires Clinical Review (Moderate)",
+        "clinical_meaning": "The observed features in the attached report do not show definitive direct indications matching the system's strict malignant or benign rules.",
+        "recommendations": "Please present this report directly to a histopathology consultant or attending physician for precise clinical diagnosis."
+    }
+# واجهة المستخدم الأساسية
+_st.title(title_text)
+_st.markdown(subtitle_text)
+_st.markdown("---")
+uploaded_file = _st.file_uploader(uploader_label, type=["png", "jpg", "jpeg", "pdf"])
 if uploaded_file is not None:
-    # عرض التقرير المرفوع
-    st.image(uploaded_file, caption="التقرير الطبي المرفوع", use_container_width=True)
+    _st.image(uploaded_file, caption="Uploaded Report", use_container_width=True)
     
-    # زر التحليل
-    if st.button("تحليل التقرير وفحص المؤشرات 🔍", type="primary"):
-        with st.spinner("جاري فحص التقرير ومطابقة الأنماط النسيجية..."):
-            # محاكاة وقت المعالجة لتعطاء طابعاً واقعياً
-            time.sleep(1.5)
+    if _st.button(button_text, type="primary"):
+        with _st.spinner(spinner_text):
+            time.sleep(1.2)
             
             file_name_lower = uploaded_file.name.lower()
             matched_condition = None
             
-            # البحث عن مطابقة للكلمات المفتاحية الخاصة بالأورام
             for key, data in cancer_knowledge.items():
                 for kw in data["keywords"]:
                     if kw in file_name_lower:
@@ -51,33 +40,26 @@ if uploaded_file is not None:
                 if matched_condition:
                     break
             
-            # ميزة الطوارئ (إذا لم توجد كلمة مفتاحية واضحة)
             if not matched_condition:
-                matched_condition = {
-                    "status": "فحص نسيجي اعتيادي / غير حاسم",
-                    "risk_level": "يحتاج مراجعة (Moderate)",
-                    "clinical_meaning": "المؤشرات الحالية في النص لا تُظهر علامات واضحة ومباشرة لأورام خبيثة أو حميدة بارزة في الكلمات المفتاحية السريعة.",
-                    "recommendations": "يُرجى عرض هذا التقرير مباشرة على استشاري الأمراض النسيجية أو الطبيب المعالج للتشخيص الدقيق."
-                }
+                matched_condition = fallback_data
             
-            # عرض النتائج بطريقة طبية احترافية
-            st.success("تم تحليل التقرير بنجاح!")
+            _st.success(success_text)
             
-            st.markdown("### 📋 نتيجة التحليل السريري:")
+            _st.markdown("### 📋 Clinical Analysis Report:")
             
-            st.markdown(f"""
+            _st.markdown(f"""
 
-| مؤشر الفحص | التقييم الطبي |
+| {table_headers[0]} | {table_headers[1]} |
 | :--- | :--- |
-| الحالة النسيجية | {matched_condition['status']} |
-| مستوى الخطورة | {matched_condition['risk_level']} |
+| Status | {matched_condition['status']} |
+| Risk Level | {matched_condition['risk_level']} |
 
             """)
             
-            st.markdown("#### 💡 التفسير السريري:")
-            st.info(matched_condition['clinical_meaning'])
+            _st.markdown(f"#### {clinical_title}")
+            _st.info(matched_condition['clinical_meaning'])
             
-            st.markdown("#### 🎯 التوصيات الطبية:")
-            st.warning(matched_condition['recommendations'])
+            _st.markdown(f"#### {recommendations_title}")
+            _st.warning(matched_condition['recommendations'])
 else:
-    st.info("الرجاء رفع صورة تقرير الفحص أو الخزعة لبدء التحليل.")
+    _st.info(no_file_text)
