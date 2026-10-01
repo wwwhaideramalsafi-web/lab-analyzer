@@ -1,1 +1,1 @@
-# lab-analyzer
+# medical-report-analyzer
