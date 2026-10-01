@@ -3,7 +3,6 @@ import time
 from PIL import Image
 import subprocess
 import shutil
-# التأكد من توفر tesseract في بيئة النظام السحابية
 def check_tesseract():
     if shutil.which("tesseract") is None:
         try:
@@ -17,7 +16,6 @@ try:
     OCR_AVAILABLE = True
 except ImportError:
     OCR_AVAILABLE = False
-# إعدادات صفحة Streamlit
 st.set_page_config(
     page_title="Pathology Expert System",
     page_icon="🎗️",
@@ -54,7 +52,7 @@ if language == "العربية":
             "status": "مؤشرات لوجود خلايا سرطانية (Malignant Findings)",
             "risk_level": "حرج / يتطلب تدخلاً عاجلاً (High Risk)",
             "confidence": "95.5% (درجة ثقة النظام في مطابقة قواعد الخباثة)",
-            "clinical_meaning": "أظهرت قراءة التقرير وجود خلايا سرطانية خبيثة (Carcinoma) مع تحديد نوع النسيج والمرحلة المرضية بدقة.",
+            "clinical_meaning": "أظهرت قراءة التقرير وجود خلايا سرطانية خبيثة مع تحديد نوع النسيج والمرحلة المرضية بدقة.",
             "recommendations": "ضرورة مراجعة طبيب الأورام وجراح مختص فوراً مع التقارير والفحوصات التأكيدية."
         },
         "benign": {
@@ -81,26 +79,26 @@ if language == "العربية":
     def extract_stage_and_grade(text):
         details = []
         if "t1" in text:
-            details.append("المرحلة المرضية: T1 (أوائل المراحل)")
+            details.append("المرحلة: T1 (أوائل المراحل)")
         elif "t2" in text:
-            details.append("المرحلة المرضية: T2")
+            details.append("المرحلة: T2")
         elif "t3" in text:
-            details.append("المرحلة المرضية: T3")
+            details.append("المرحلة: T3")
         elif "t4" in text:
-            details.append("المرحلة المرضية: T4 (متقدمة)")
-            if "low grade" in text:
-            details.append("الدرجة: منخفضة الدرجة (Low Grade)")
-        elif "high grade" in text:
-            details.append("الدرجة: عالية الدرجة (High Grade)")
+            details.append("المرحلة: T4 (متقدمة)")
+            
+        if "low grade" in text:
+            details.append("الدرجة: منخفضة (Low Grade)")    elif "high grade" in text:
+            details.append("الدرجة: عالية (High Grade)")
             
         if not details:
-            details.append("لم يتم رصد تفاصيل مرحلية صريحة في النص المستخرج.")
+            details.append("لم يتم رصد تفاصيل مرحلية صريحة.")
         return " | ".join(details)
     fallback_data = {
         "status": "فحص نسيجي خاضع للتدقيق / غير حاسم",
         "risk_level": "يحتاج مراجعة سريرية (Moderate)",
         "confidence": "55.0% (غير حاسم - يتطلب مراجعة بشرية استشارية)",
-        "clinical_meaning": "النصوص المستخرجة من التقرير المرفق لا تُظهر دلالات قطعية واضحة تابعة لقواعد الأورام الخبيثة أو الحميدة.",
+        "clinical_meaning": "النصوص المستخرجة من التقرير المرفق لا تُظهر دلالات قطعية واضحة تابعة لقواعد الأورام.",
         "recommendations": "يُرجى عرض هذا التقرير مباشرة على استشاري الأمراض النسيجية للتشخيص الدقيق."
     }
 else:
@@ -121,7 +119,7 @@ else:
             "status": "Malignant Findings Detected",
             "risk_level": "High Risk / Urgent Action Required",
             "confidence": "95.5% (System Confidence in Malignancy Rules)",
-            "clinical_meaning": "Report reading indicates malignant cells (Carcinoma) along with identified tissue type and pathology stage.",
+            "clinical_meaning": "Report reading indicates malignant cells along with identified tissue type and pathology stage.",
             "recommendations": "Immediate consultation with an oncologist is necessary."
         },
         "benign": {
@@ -168,9 +166,8 @@ else:
         "status": "Standard Histological Examination / Inconclusive",
         "risk_level": "Requires Clinical Review (Moderate)",
         "confidence": "55.0% (Inconclusive - Requires Human Review)",
-    "clinical_meaning": "The extracted text features do not show definitive direct indications matching strict rules.",
-        "recommendations": "Please present this report directly to a histopathology consultant."
-    }
+        "clinical_meaning": "The extracted text features do not show definitive direct indications matching strict rules.",
+        "recommendations": "Please present this report directly to a histopathology consultant."}
 st.title(title_text)
 st.markdown(subtitle_text)
 st.markdown("---")
