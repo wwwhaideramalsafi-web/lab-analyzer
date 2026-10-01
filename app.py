@@ -1,7 +1,4 @@
-"status": "Malignant Findings Detected",
-            "risk_level": "High Risk / Urgent Action Required",
-            "clinical_meaning": "The report contains medical terminology indicating abnormal growth and malignant cells requiring precise evaluation.",
-            "recommendations": "Immediate consultation with an oncologist and specialist surgeon is necessary, along with confirmatory tests."
+"recommendations": "Immediate consultation with an oncologist and specialist surgeon is necessary, along with confirmatory tests."
         },
         "benign": {
             "keywords": ["benign", "non-malignant", "cyst", "fibroid"],
@@ -18,15 +15,15 @@
         "recommendations": "Please present this report directly to a histopathology consultant or attending physician for precise clinical diagnosis."
     }
 # واجهة المستخدم الأساسية
-_st.title(title_text)
-_st.markdown(subtitle_text)
-_st.markdown("---")
-uploaded_file = _st.file_uploader(uploader_label, type=["png", "jpg", "jpeg", "pdf"])
+st.title(title_text)
+st.markdown(subtitle_text)
+st.markdown("---")
+uploaded_file = st.file_uploader(uploader_label, type=["png", "jpg", "jpeg", "pdf"])
 if uploaded_file is not None:
-    _st.image(uploaded_file, caption="Uploaded Report", use_container_width=True)
+    st.image(uploaded_file, caption="Uploaded Report", use_container_width=True)
     
-    if _st.button(button_text, type="primary"):
-        with _st.spinner(spinner_text):
+    if st.button(button_text, type="primary"):
+        with st.spinner(spinner_text):
             time.sleep(1.2)
             
             file_name_lower = uploaded_file.name.lower()
@@ -43,11 +40,11 @@ if uploaded_file is not None:
             if not matched_condition:
                 matched_condition = fallback_data
             
-            _st.success(success_text)
+            st.success(success_text)
             
-            _st.markdown("### 📋 Clinical Analysis Report:")
+            st.markdown("### 📋 Clinical Analysis Report:")
             
-            _st.markdown(f"""
+            st.markdown(f"""
 
 | {table_headers[0]} | {table_headers[1]} |
 | :--- | :--- |
@@ -56,10 +53,10 @@ if uploaded_file is not None:
 
             """)
             
-            _st.markdown(f"#### {clinical_title}")
-            _st.info(matched_condition['clinical_meaning'])
+            st.markdown(f"#### {clinical_title}")
+            st.info(matched_condition['clinical_meaning'])
             
-            _st.markdown(f"#### {recommendations_title}")
-            _st.warning(matched_condition['recommendations'])
+            st.markdown(f"#### {recommendations_title}")
+            st.warning(matched_condition['recommendations'])
 else:
-    _st.info(no_file_text)
+    st.info(no_file_text)
